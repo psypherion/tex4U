@@ -19,18 +19,16 @@
   <div id="main">
     <div id="files-panel" class="collapsed">
       <div id="files-header">
-        <span>Project Files</span>
-        <button id="close-files-btn">✕</button>
-      </div>
-      <!-- Mode selector -->
-      <div id="mode-selector">
-        <label><input type="radio" name="workspace-mode" value="temp" checked> Temp</label>
-        <label><input type="radio" name="workspace-mode" value="custom"> Custom</label>
-        <div id="custom-path-area" style="display:none">
-          <input type="text" id="custom-path-input" placeholder="/absolute/path/to/project">
+        <span id="project-name">No project</span>
+        <div>
+          <button id="rename-project-btn" title="Rename project">✎</button>
+          <button id="close-files-btn">✕</button>
         </div>
       </div>
-      <!-- File upload -->
+      <div id="folder-creation">
+        <input type="text" id="new-folder-name" placeholder="New folder name">
+        <button id="create-folder-btn">+</button>
+      </div>
       <div id="files-upload">
         <input type="file" id="file-input" multiple>
         <button id="upload-btn">Upload</button>

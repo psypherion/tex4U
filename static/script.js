@@ -6,22 +6,16 @@ const starterSource = [
   '\\usepackage{graphicx}',
   '',
   '\\begin{document}',
-  '',
   '\\title{My Document}',
   '\\author{Local LaTeX}',
   '\\date{\\today}',
   '\\maketitle',
-  '',
   '\\section{Introduction}',
-  'Hello, this is a local \\LaTeX\\ editor.',
-  '',
-  '% Example image inclusion (upload an image first)',
-  '% \\includegraphics[width=0.5\\textwidth]{example.png}',
-  '',
+  'Hello!',
+  '% \\includegraphics[width=0.5\\textwidth]{figures/example.png}',
   '\\begin{equation}',
   '  E = mc^2',
   '\\end{equation}',
-  '',
   '\\end{document}'
 ].join('\n');
 
@@ -35,31 +29,28 @@ const editor = CodeMirror.fromTextArea(document.getElementById('editor'), {
   value: starterSource
 });
 
-// ---------- DOM ----------
+// ---------- DOM elements ----------
 const compileBtn = document.getElementById('compile-btn');
 const downloadBtn = document.getElementById('download-btn');
 const newProjectBtn = document.getElementById('new-project-btn');
+const renameProjectBtn = document.getElementById('rename-project-btn');
 const toggleFilesBtn = document.getElementById('toggle-files-btn');
 const closeFilesBtn = document.getElementById('close-files-btn');
 const filesPanel = document.getElementById('files-panel');
 const fileInput = document.getElementById('file-input');
 const uploadBtn = document.getElementById('upload-btn');
-const fileTree = document.getElementById('file-tree');
+const fileTreeDiv = document.getElementById('file-tree');
 const statusSpan = document.getElementById('status');
 const logDiv = document.getElementById('log');
 const pdfFrame = document.getElementById('pdf-frame');
-
-// Mode selector elements
-const tempRadio = document.querySelector('input[value="temp"]');
-const customRadio = document.querySelector('input[value="custom"]');
-const customPathArea = document.getElementById('custom-path-area');
-const customPathInput = document.getElementById('custom-path-input');
+const projectNameSpan = document.getElementById('project-name');
+const newFolderNameInput = document.getElementById('new-folder-name');
+const createFolderBtn = document.getElementById('create-folder-btn');
 
 let currentProjectId = null;
-let currentMode = 'temp';       // 'temp' or 'custom'
-let customPath = '';
+let selectedUploadFolder = '';   // relative path within project
 
-// ---------- UI: File panel toggle ----------
+// ---------- UI helpers ----------
 function openFilesPanel() {
   filesPanel.classList.remove('collapsed');
   toggleFilesBtn.textContent = 'Files ◂';
@@ -73,63 +64,10 @@ toggleFilesBtn.addEventListener('click', () => {
 });
 closeFilesBtn.addEventListener('click', closeFilesPanel);
 
-// ---------- Mode selector logic ----------
-function updateModeUI() {
-  if (customRadio.checked) {
-    customPathArea.style.display = 'block';
-  } else {
-    customPathArea.style.display = 'none';
-  }
-}
-tempRadio.addEventListener('change', () => {
-  currentMode = 'temp';
-  localStorage.setItem('latexWorkspaceMode', 'temp');
-  updateModeUI();
-});
-customRadio.addEventListener('change', () => {
-  currentMode = 'custom';
-  localStorage.setItem('latexWorkspaceMode', 'custom');
-  updateModeUI();
-});
-customPathInput.addEventListener('input', () => {
-  customPath = customPathInput.value.trim();
-  localStorage.setItem('latexCustomPath', customPath);
-});
-
-// Restore saved mode and path
-function restoreModeFromStorage() {
-  const savedMode = localStorage.getItem('latexWorkspaceMode');
-  if (savedMode === 'custom') {
-    customRadio.checked = true;
-    currentMode = 'custom';
-    customPath = localStorage.getItem('latexCustomPath') || '';
-    customPathInput.value = customPath;
-  } else {
-    tempRadio.checked = true;
-    currentMode = 'temp';
-    customPath = '';
-    customPathInput.value = '';
-  }
-  updateModeUI();
-}
-
 // ---------- Project management ----------
 async function createNewProject() {
-  const body = { mode: currentMode };
-  if (currentMode === 'custom') {
-    if (!customPath) {
-      statusSpan.textContent = 'Please enter a folder path for custom workspace';
-      return;
-    }
-    body.path = customPath;
-  }
-
   try {
-    const resp = await fetch('/project', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(body)
-    });
+    const resp = await fetch('/project', { method: 'POST' });
     if (!resp.ok) {
       const err = await resp.json();
       statusSpan.textContent = 'Error: ' + (err.detail || resp.status);
@@ -138,60 +76,65 @@ async function createNewProject() {
     const data = await resp.json();
     currentProjectId = data.project_id;
     localStorage.setItem('latexProjectId', currentProjectId);
-    localStorage.setItem('latexWorkspaceMode', currentMode);
-    if (currentMode === 'custom') {
-      localStorage.setItem('latexCustomPath', customPath);
-    }
+    projectNameSpan.textContent = currentProjectId;
     pdfFrame.src = '';
     logDiv.textContent = '';
-    statusSpan.textContent = `New ${currentMode} project created`;
+    statusSpan.textContent = 'New project created';
     editor.setValue(starterSource);
-    await updateFileList();
+    await updateFileTree();
   } catch (e) {
     statusSpan.textContent = 'Failed to create project';
   }
 }
 
+async function renameProject() {
+  if (!currentProjectId) return;
+  const newName = prompt('Enter new project name:', currentProjectId);
+  if (!newName || newName.trim() === '' || newName.trim() === currentProjectId) return;
+  try {
+    const resp = await fetch(`/project/${currentProjectId}/rename`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ new_name: newName.trim() })
+    });
+    if (!resp.ok) {
+      const err = await resp.json();
+      alert('Rename failed: ' + (err.detail || resp.status));
+      return;
+    }
+    const data = await resp.json();
+    currentProjectId = data.project_id;
+    localStorage.setItem('latexProjectId', currentProjectId);
+    projectNameSpan.textContent = currentProjectId;
+    pdfFrame.src = `/pdf/${currentProjectId}?t=${Date.now()}`;
+    statusSpan.textContent = 'Project renamed';
+  } catch (e) {
+    alert('Rename error: ' + e.message);
+  }
+}
+
 async function ensureProject() {
   const storedId = localStorage.getItem('latexProjectId');
-  const storedMode = localStorage.getItem('latexWorkspaceMode');
-  const storedPath = localStorage.getItem('latexCustomPath');
-
   if (!storedId) {
     await createNewProject();
     return;
   }
-
-  // Try to use the stored project
   currentProjectId = storedId;
+  projectNameSpan.textContent = currentProjectId;
+  // Check if project exists by fetching file list
   try {
     const resp = await fetch(`/files/${currentProjectId}`);
-    if (resp.ok) {
-      // Valid
-      return;
-    } else if (resp.status === 404 && storedMode === 'custom' && storedPath) {
-      // Custom project lost after restart -> reconnect
-      const reconResp = await fetch('/project/reconnect', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ mode: 'custom', path: storedPath })
-      });
-      if (reconResp.ok) {
-        const data = await reconResp.json();
-        currentProjectId = data.project_id;
-        localStorage.setItem('latexProjectId', currentProjectId);
-        return;
-      }
+    if (!resp.ok && resp.status === 404) {
+      // Project folder missing – create a new one
+      await createNewProject();
     }
-  } catch (e) {
-    // network error, maybe server down? will create new later
+  } catch {
+    await createNewProject();
   }
-  // fallback: create new project
-  await createNewProject();
 }
 
 // ---------- File tree ----------
-async function updateFileList() {
+async function updateFileTree() {
   if (!currentProjectId) return;
   try {
     const resp = await fetch(`/files/${currentProjectId}`);
@@ -202,33 +145,87 @@ async function updateFileList() {
       }
       throw new Error(`Server responded with ${resp.status}`);
     }
-    const data = await resp.json();
-    renderFileTree(data.files);
+    const tree = await resp.json();
+    renderTree(tree, fileTreeDiv, '');
   } catch (e) {
     logDiv.textContent += `Error loading files: ${e.message}\n`;
   }
 }
 
-function renderFileTree(files) {
-  fileTree.innerHTML = '';
-  if (files.length === 0) {
-    fileTree.innerHTML = '<div class="file-tree-item">(empty)</div>';
-    return;
+function renderTree(node, container, parentPath) {
+  container.innerHTML = '';
+  if (node.type === 'directory') {
+    const children = node.children || [];
+    if (parentPath === '') {
+      children.forEach(child => {
+        const childPath = child.name;
+        container.appendChild(createTreeItem(child, childPath));
+      });
+    } else {
+      const folderDiv = document.createElement('div');
+      folderDiv.className = 'tree-folder';
+      const header = document.createElement('div');
+      header.className = 'tree-item folder-header';
+      header.innerHTML = `
+        <span class="tree-toggle">▼</span>
+        <span class="tree-icon">📁</span>
+        <span class="tree-name">${escapeHtml(node.name)}</span>
+        <button class="delete-btn" data-path="${parentPath}" title="Delete folder">✕</button>
+      `;
+      const childContainer = document.createElement('div');
+      childContainer.className = 'tree-children';
+      children.forEach(child => {
+        const childPath = `${parentPath}/${child.name}`;
+        childContainer.appendChild(createTreeItem(child, childPath));
+      });
+      folderDiv.appendChild(header);
+      folderDiv.appendChild(childContainer);
+      header.querySelector('.tree-toggle').addEventListener('click', () => {
+        folderDiv.classList.toggle('collapsed');
+        const toggle = header.querySelector('.tree-toggle');
+        toggle.textContent = folderDiv.classList.contains('collapsed') ? '►' : '▼';
+      });
+      header.querySelector('.delete-btn').addEventListener('click', async (e) => {
+        e.stopPropagation();
+        if (confirm(`Delete folder "${node.name}"? It must be empty.`)) {
+          await deleteItem(parentPath);
+        }
+      });
+      header.querySelector('.tree-name').addEventListener('click', () => {
+        selectedUploadFolder = parentPath;
+        statusSpan.textContent = `Upload target: ${parentPath || 'root'}`;
+      });
+      container.appendChild(folderDiv);
+    }
   }
-  files.forEach(fname => {
-    const item = document.createElement('div');
-    item.className = 'file-tree-item';
+}
+
+function createTreeItem(node, relativePath) {
+  const item = document.createElement('div');
+  if (node.type === 'directory') {
+    const sub = document.createElement('div');
+    sub.className = 'tree-node';
+    renderTree(node, sub, relativePath);
+    return sub;
+  } else {
+    item.className = 'tree-item';
     item.innerHTML = `
-      <span class="file-icon">📄</span>
-      <span class="file-name">${escapeHtml(fname)}</span>
-      <button class="delete-file-btn" title="Delete file">✕</button>
+      <span class="tree-icon">📄</span>
+      <span class="tree-name">${escapeHtml(node.name)}</span>
+      <button class="delete-btn" data-path="${relativePath}" title="Delete file">✕</button>
     `;
-    item.querySelector('.delete-file-btn').addEventListener('click', async (e) => {
+    item.querySelector('.delete-btn').addEventListener('click', async (e) => {
       e.stopPropagation();
-      await deleteFile(fname);
+      if (confirm(`Delete file "${node.name}"?`)) {
+        await deleteItem(relativePath);
+      }
     });
-    fileTree.appendChild(item);
-  });
+    item.querySelector('.tree-name').addEventListener('click', () => {
+      const cursor = editor.getCursor();
+      editor.replaceRange(relativePath, cursor);
+    });
+    return item;
+  }
 }
 
 function escapeHtml(text) {
@@ -237,13 +234,37 @@ function escapeHtml(text) {
   return div.innerHTML;
 }
 
-// ---------- Upload / Delete ----------
-async function uploadFiles() {
+// ---------- Folder creation ----------
+createFolderBtn.addEventListener('click', async () => {
+  const name = newFolderNameInput.value.trim();
+  if (!name) return;
+  if (!currentProjectId) return;
+  try {
+    const resp = await fetch(`/project/${currentProjectId}/mkdir`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ dirname: name, parent: selectedUploadFolder })
+    });
+    if (!resp.ok) {
+      const err = await resp.json();
+      logDiv.textContent += `Folder creation failed: ${err.detail}\n`;
+    } else {
+      newFolderNameInput.value = '';
+      await updateFileTree();
+    }
+  } catch (e) {
+    logDiv.textContent += `Error: ${e.message}\n`;
+  }
+});
+
+// ---------- Upload ----------
+uploadBtn.addEventListener('click', async () => {
   if (!currentProjectId || fileInput.files.length === 0) return;
   statusSpan.textContent = 'Uploading...';
   for (let file of fileInput.files) {
     const formData = new FormData();
     formData.append('file', file);
+    formData.append('folder', selectedUploadFolder);
     try {
       const resp = await fetch(`/upload/${currentProjectId}`, {
         method: 'POST',
@@ -259,23 +280,23 @@ async function uploadFiles() {
   }
   statusSpan.textContent = 'Upload complete';
   fileInput.value = '';
-  await updateFileList();
-}
+  await updateFileTree();
+});
 
-async function deleteFile(filename) {
+async function deleteItem(relativePath) {
   if (!currentProjectId) return;
   try {
-    const resp = await fetch(`/files/${currentProjectId}/${filename}`, {
+    const resp = await fetch(`/files/${currentProjectId}?path=${encodeURIComponent(relativePath)}`, {
       method: 'DELETE'
     });
-    if (resp.ok) {
-      await updateFileList();
-    } else {
+    if (!resp.ok) {
       const err = await resp.json();
       logDiv.textContent += `Delete failed: ${err.detail}\n`;
+    } else {
+      await updateFileTree();
     }
   } catch (e) {
-    logDiv.textContent += `Delete error: ${e.message}\n`;
+    logDiv.textContent += `Error: ${e.message}\n`;
   }
 }
 
@@ -283,10 +304,8 @@ async function deleteFile(filename) {
 async function compile() {
   const source = editor.getValue();
   if (!source.trim() || !currentProjectId) return;
-
   statusSpan.textContent = 'Compiling…';
   logDiv.textContent = '';
-
   try {
     const response = await fetch('/compile', {
       method: 'POST',
@@ -294,9 +313,8 @@ async function compile() {
       body: JSON.stringify({ source, project_id: currentProjectId })
     });
     const data = await response.json();
-
     if (data.success) {
-      currentProjectId = data.project_id;
+      currentProjectId = data.project_id;  // in case it changed, but it won't
       localStorage.setItem('latexProjectId', currentProjectId);
       pdfFrame.src = `/pdf/${currentProjectId}?t=${Date.now()}`;
       statusSpan.textContent = '✓ Compilation successful';
@@ -315,7 +333,7 @@ async function compile() {
 // ---------- Event listeners ----------
 compileBtn.addEventListener('click', compile);
 newProjectBtn.addEventListener('click', createNewProject);
-uploadBtn.addEventListener('click', uploadFiles);
+renameProjectBtn.addEventListener('click', renameProject);
 downloadBtn.addEventListener('click', () => {
   if (currentProjectId) window.open(`/pdf/${currentProjectId}`, '_blank');
 });
@@ -325,9 +343,8 @@ editor.setOption('extraKeys', {
 });
 
 // ---------- Initialisation ----------
-restoreModeFromStorage();
 ensureProject().then(() => {
-  updateFileList();
+  updateFileTree();
   if (currentProjectId) {
     pdfFrame.src = `/pdf/${currentProjectId}?t=${Date.now()}`;
     downloadBtn.disabled = false;

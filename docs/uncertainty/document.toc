@@ -1,0 +1,48 @@
+\contentsline {section}{\numberline {1}Introduction}{3}{section.1}%
+\contentsline {paragraph}{The marginal-coverage gap.}{3}{section*.2}%
+\contentsline {paragraph}{Our contribution.}{3}{section*.3}%
+\contentsline {paragraph}{Organisation.}{4}{section*.4}%
+\contentsline {section}{\numberline {2}Related Work}{4}{section.2}%
+\contentsline {paragraph}{Conformal prediction.}{4}{section*.5}%
+\contentsline {paragraph}{Conformal prediction for scientific machine learning.}{4}{section*.6}%
+\contentsline {paragraph}{Uncertainty quantification for PINNs.}{4}{section*.7}%
+\contentsline {paragraph}{Distinction from prior work.}{4}{section*.8}%
+\contentsline {section}{\numberline {3}Problem Setting and Notation}{5}{section.3}%
+\contentsline {subsection}{\numberline {3.1}The PDE and PINN}{5}{subsection.3.1}%
+\contentsline {subsection}{\numberline {3.2}Data and folds}{5}{subsection.3.2}%
+\contentsline {subsection}{\numberline {3.3}Notation table}{5}{subsection.3.3}%
+\contentsline {section}{\numberline {4}The PI-CP Framework}{5}{section.4}%
+\contentsline {subsection}{\numberline {4.1}Physics-informed scale}{6}{subsection.4.1}%
+\contentsline {subsection}{\numberline {4.2}Conditional-quantile network with graph regularisation}{6}{subsection.4.2}%
+\contentsline {subsection}{\numberline {4.3}Shock-stratified conformal calibration}{7}{subsection.4.3}%
+\contentsline {section}{\numberline {5}Theoretical Guarantees}{7}{section.5}%
+\contentsline {subsection}{\numberline {5.1}Stratified finite-sample coverage}{7}{subsection.5.1}%
+\contentsline {subsection}{\numberline {5.2}Graph-TV piecewise-constant structure}{9}{subsection.5.2}%
+\contentsline {section}{\numberline {6}Algorithm}{10}{section.6}%
+\contentsline {section}{\numberline {7}Experiments}{10}{section.7}%
+\contentsline {subsection}{\numberline {7.1}Benchmark and setup}{10}{subsection.7.1}%
+\contentsline {paragraph}{PDE.}{10}{section*.11}%
+\contentsline {paragraph}{Splits.}{10}{section*.12}%
+\contentsline {paragraph}{PINN architectures.}{10}{section*.13}%
+\contentsline {paragraph}{PI-CP hyperparameters.}{11}{section*.14}%
+\contentsline {subsection}{\numberline {7.2}Diagnostic figures}{11}{subsection.7.2}%
+\contentsline {paragraph}{Stratification (Figure~\ref {fig:strat}).}{11}{section*.15}%
+\contentsline {paragraph}{Score distributions (Figure~\ref {fig:scores}).}{11}{section*.17}%
+\contentsline {paragraph}{Residual normality (Figure~\ref {fig:qq}).}{11}{section*.19}%
+\contentsline {paragraph}{Coverage curves (Figure~\ref {fig:cov}).}{11}{section*.21}%
+\contentsline {subsection}{\numberline {7.3}Main results table}{12}{subsection.7.3}%
+\contentsline {paragraph}{Reading the table.}{12}{section*.24}%
+\contentsline {paragraph}{Where graph-TV is active.}{12}{section*.25}%
+\contentsline {section}{\numberline {8}Scope and Limitations}{13}{section.8}%
+\contentsline {paragraph}{Stratified, not pointwise, conditional coverage.}{13}{section*.26}%
+\contentsline {paragraph}{Single seed.}{13}{section*.27}%
+\contentsline {paragraph}{Coordinate-MLP quantile network.}{13}{section*.28}%
+\contentsline {paragraph}{I.I.D.\ assumption.}{13}{section*.29}%
+\contentsline {paragraph}{Missing baseline.}{13}{section*.30}%
+\contentsline {section}{\numberline {9}Future Work}{13}{section.9}%
+\contentsline {subsection}{\numberline {9.1}Theoretical extensions}{13}{subsection.9.1}%
+\contentsline {subsection}{\numberline {9.2}Empirical extensions}{14}{subsection.9.2}%
+\contentsline {subsection}{\numberline {9.3}Baseline comparisons}{14}{subsection.9.3}%
+\contentsline {subsection}{\numberline {9.4}Ablations}{14}{subsection.9.4}%
+\contentsline {subsection}{\numberline {9.5}Timeline to submission}{14}{subsection.9.5}%
+\contentsline {section}{\numberline {10}Conclusion}{15}{section.10}%
