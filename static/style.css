@@ -86,3 +86,64 @@ button:disabled { opacity: 0.5; cursor: default; }
   font-family: 'Consolas', monospace; font-size: 12px; color: #bbb;
   white-space: pre-wrap; word-break: break-all; flex-shrink: 0;
 }
+/* Floating search bar */
+#search-bar {
+  display: none;
+  position: fixed;
+  top: 12px;
+  right: 20px;
+  background: #2d2d2d;
+  border: 1px solid #555;
+  border-radius: 6px;
+  padding: 6px 10px;
+  z-index: 9999;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+  align-items: center;
+  gap: 6px;
+}
+
+#search-bar.show {
+  display: flex;
+}
+
+#search-input {
+  background: #1e1e1e;
+  border: 1px solid #555;
+  color: #e0e0e0;
+  padding: 3px 8px;
+  font-size: 13px;
+  width: 200px;
+  border-radius: 4px;
+  outline: none;
+}
+
+#search-input:focus {
+  border-color: #9cdcfe;
+}
+
+#search-bar button {
+  background: transparent;
+  border: none;
+  color: #ccc;
+  cursor: pointer;
+  padding: 2px 6px;
+  font-size: 14px;
+}
+
+#search-bar button:hover {
+  color: #fff;
+}
+
+#search-case-sensitive {
+  margin-left: 4px;
+}
+
+/* Make sure the editor pane doesn't clip anything */
+#editor-pane {
+  position: relative;
+}
+/* Search highlight */
+.cm-search-match {
+  background: #8a6d3b !important;
+  border-radius: 2px;
+}

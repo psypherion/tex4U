@@ -9,11 +9,21 @@
   <link rel="stylesheet" href="/static/style.css">
 </head>
 <body>
+  <!-- Floating search bar (outside editor pane) -->
+  <div id="search-bar">
+    <input type="text" id="search-input" placeholder="Find in editor...">
+    <button id="search-prev-btn" title="Previous match">▲</button>
+    <button id="search-next-btn" title="Next match">▼</button>
+    <label><input type="checkbox" id="search-case-sensitive"> Aa</label>
+    <button id="search-close-btn">✕</button>
+  </div>
+
   <div id="toolbar">
     <button id="compile-btn">Compile</button>
     <span id="status"></span>
     <button id="download-btn" disabled>Download PDF</button>
     <button id="new-project-btn">New Project</button>
+    <button id="search-btn">🔍 Search</button>
     <button id="toggle-files-btn">Files ▸</button>
   </div>
   <div id="main">
@@ -44,6 +54,7 @@
   </div>
   <div id="log"></div>
 
+  <!-- Only one CodeMirror and the searchcursor addon -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/stex/stex.min.js"></script>
   <script src="/static/script.js"></script>
