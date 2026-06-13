@@ -58,6 +58,13 @@ document.addEventListener('DOMContentLoaded', () => {
   const searchCaseSensitive = document.getElementById('search-case-sensitive');
   const searchCloseBtn = document.getElementById('search-close-btn');
 
+  // Cheat Sheet elements
+  const cheatsheetBtn = document.getElementById('cheatsheet-btn');
+  const cheatsheetModal = document.getElementById('cheatsheet-modal');
+  const cheatsheetClose = document.getElementById('cheatsheet-close');
+  const cheatsheetSearch = document.getElementById('cheatsheet-search');
+  const cheatsheetList = document.getElementById('cheatsheet-list');
+
   let currentProjectId = null;
   let selectedUploadFolder = '';
 
@@ -314,21 +321,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
-  // ===================== PURE JS SEARCH =====================
-
-  // Convert a flat index in the text to a {line, ch} position
-  function indexToPos(text, index) {
-    let line = 0, ch = 0;
-    for (let i = 0; i < index; i++) {
-      if (text[i] === '\n') {
-        line++;
-        ch = 0;
-      } else {
-        ch++;
-      }
-    }
-    return { line, ch };
-  }
+  // ===================== CUSTOM SEARCH =====================
 
   function clearSearchHighlights() {
     searchMarkers.forEach(m => m.clear());
@@ -354,6 +347,19 @@ document.addEventListener('DOMContentLoaded', () => {
       });
       searchMarkers.push(marker);
     }
+  }
+
+  function indexToPos(text, index) {
+    let line = 0, ch = 0;
+    for (let i = 0; i < index; i++) {
+      if (text[i] === '\n') {
+        line++;
+        ch = 0;
+      } else {
+        ch++;
+      }
+    }
+    return { line, ch };
   }
 
   function moveToNextMatch() {
@@ -436,9 +442,416 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 
-  // ===================== END SEARCH =====================
+  // ===================== CHEAT SHEET =====================
 
-  // ---------- Compilation ----------
+  const latexCommands = [
+
+  /* ==========================================================
+     DOCUMENT & IEEE
+  ========================================================== */
+
+  { cat:'Document', cmd:'\\documentclass{article}', desc:'Article class' },
+  { cat:'Document', cmd:'\\documentclass[journal]{IEEEtran}', desc:'IEEE Journal' },
+  { cat:'Document', cmd:'\\documentclass[conference]{IEEEtran}', desc:'IEEE Conference' },
+  { cat:'Document', cmd:'\\begin{document}' },
+  { cat:'Document', cmd:'\\end{document}' },
+  { cat:'Document', cmd:'\\usepackage{}' },
+  { cat:'Document', cmd:'\\RequirePackage{}' },
+
+  /* ==========================================================
+     TITLE
+  ========================================================== */
+
+  { cat:'Title', cmd:'\\title{}' },
+  { cat:'Title', cmd:'\\author{}' },
+  { cat:'Title', cmd:'\\date{}' },
+  { cat:'Title', cmd:'\\maketitle' },
+  { cat:'Title', cmd:'\\thanks{}' },
+
+  /* ==========================================================
+     STRUCTURE
+  ========================================================== */
+
+  { cat:'Structure', cmd:'\\part{}' },
+  { cat:'Structure', cmd:'\\chapter{}' },
+  { cat:'Structure', cmd:'\\section{}' },
+  { cat:'Structure', cmd:'\\subsection{}' },
+  { cat:'Structure', cmd:'\\subsubsection{}' },
+  { cat:'Structure', cmd:'\\paragraph{}' },
+  { cat:'Structure', cmd:'\\subparagraph{}' },
+  { cat:'Structure', cmd:'\\tableofcontents' },
+
+  /* ==========================================================
+     TEXT FORMATTING
+  ========================================================== */
+
+  { cat:'Text', cmd:'\\textbf{}' },
+  { cat:'Text', cmd:'\\textit{}' },
+  { cat:'Text', cmd:'\\underline{}' },
+  { cat:'Text', cmd:'\\emph{}' },
+  { cat:'Text', cmd:'\\texttt{}' },
+  { cat:'Text', cmd:'\\textsf{}' },
+  { cat:'Text', cmd:'\\textrm{}' },
+  { cat:'Text', cmd:'\\textsc{}' },
+  { cat:'Text', cmd:'\\textnormal{}' },
+
+  /* ==========================================================
+     FONT DECLARATIONS
+  ========================================================== */
+
+  { cat:'Font', cmd:'\\rmfamily' },
+  { cat:'Font', cmd:'\\sffamily' },
+  { cat:'Font', cmd:'\\ttfamily' },
+  { cat:'Font', cmd:'\\bfseries' },
+  { cat:'Font', cmd:'\\mdseries' },
+  { cat:'Font', cmd:'\\itshape' },
+  { cat:'Font', cmd:'\\slshape' },
+  { cat:'Font', cmd:'\\upshape' },
+  { cat:'Font', cmd:'\\scshape' },
+
+  /* ==========================================================
+     FONT SIZES
+  ========================================================== */
+
+  { cat:'Font Size', cmd:'\\tiny' },
+  { cat:'Font Size', cmd:'\\scriptsize' },
+  { cat:'Font Size', cmd:'\\footnotesize' },
+  { cat:'Font Size', cmd:'\\small' },
+  { cat:'Font Size', cmd:'\\normalsize' },
+  { cat:'Font Size', cmd:'\\large' },
+  { cat:'Font Size', cmd:'\\Large' },
+  { cat:'Font Size', cmd:'\\LARGE' },
+  { cat:'Font Size', cmd:'\\huge' },
+  { cat:'Font Size', cmd:'\\Huge' },
+
+  /* ==========================================================
+     LISTS
+  ========================================================== */
+
+  { cat:'Lists', cmd:'\\begin{itemize}' },
+  { cat:'Lists', cmd:'\\begin{enumerate}' },
+  { cat:'Lists', cmd:'\\begin{description}' },
+  { cat:'Lists', cmd:'\\item' },
+
+  /* ==========================================================
+     ALIGNMENT
+  ========================================================== */
+
+  { cat:'Alignment', cmd:'\\centering' },
+  { cat:'Alignment', cmd:'\\raggedright' },
+  { cat:'Alignment', cmd:'\\raggedleft' },
+  { cat:'Alignment', cmd:'\\begin{center}' },
+  { cat:'Alignment', cmd:'\\begin{flushleft}' },
+  { cat:'Alignment', cmd:'\\begin{flushright}' },
+
+  /* ==========================================================
+     TABLES
+  ========================================================== */
+
+  { cat:'Tables', cmd:'\\begin{table}' },
+  { cat:'Tables', cmd:'\\begin{table*}' },
+  { cat:'Tables', cmd:'\\begin{tabular}' },
+  { cat:'Tables', cmd:'\\begin{tabular*}' },
+  { cat:'Tables', cmd:'\\hline' },
+  { cat:'Tables', cmd:'\\cline{}' },
+  { cat:'Tables', cmd:'\\multicolumn{}{}{}' },
+  { cat:'Tables', cmd:'\\multirow{}{}{}' },
+  { cat:'Tables', cmd:'\\toprule' },
+  { cat:'Tables', cmd:'\\midrule' },
+  { cat:'Tables', cmd:'\\bottomrule' },
+
+  /* ==========================================================
+     FIGURES
+  ========================================================== */
+
+  { cat:'Figures', cmd:'\\begin{figure}' },
+  { cat:'Figures', cmd:'\\begin{figure*}' },
+  { cat:'Figures', cmd:'\\includegraphics{}' },
+  { cat:'Figures', cmd:'\\caption{}' },
+  { cat:'Figures', cmd:'\\label{}' },
+
+  /* ==========================================================
+     REFERENCES
+  ========================================================== */
+
+  { cat:'References', cmd:'\\label{}' },
+  { cat:'References', cmd:'\\ref{}' },
+  { cat:'References', cmd:'\\pageref{}' },
+  { cat:'References', cmd:'\\cite{}' },
+  { cat:'References', cmd:'\\citep{}' },
+  { cat:'References', cmd:'\\citet{}' },
+
+  /* ==========================================================
+     SETS
+  ========================================================== */
+
+  { cat:'Sets', cmd:'\\mathbb{N}' },
+  { cat:'Sets', cmd:'\\mathbb{Z}' },
+  { cat:'Sets', cmd:'\\mathbb{Q}' },
+  { cat:'Sets', cmd:'\\mathbb{R}' },
+  { cat:'Sets', cmd:'\\mathbb{C}' },
+  { cat:'Sets', cmd:'\\emptyset' },
+  { cat:'Sets', cmd:'\\cup' },
+  { cat:'Sets', cmd:'\\cap' },
+  { cat:'Sets', cmd:'\\subset' },
+  { cat:'Sets', cmd:'\\subseteq' },
+  { cat:'Sets', cmd:'\\supset' },
+  { cat:'Sets', cmd:'\\supseteq' },
+  { cat:'Sets', cmd:'\\setminus' },
+
+  /* ==========================================================
+     LOGIC
+  ========================================================== */
+
+  { cat:'Logic', cmd:'\\forall' },
+  { cat:'Logic', cmd:'\\exists' },
+  { cat:'Logic', cmd:'\\nexists' },
+  { cat:'Logic', cmd:'\\land' },
+  { cat:'Logic', cmd:'\\lor' },
+  { cat:'Logic', cmd:'\\neg' },
+  { cat:'Logic', cmd:'\\implies' },
+  { cat:'Logic', cmd:'\\iff' },
+
+  /* ==========================================================
+     RELATIONS
+  ========================================================== */
+
+  { cat:'Relations', cmd:'\\leq' },
+  { cat:'Relations', cmd:'\\geq' },
+  { cat:'Relations', cmd:'\\neq' },
+  { cat:'Relations', cmd:'\\equiv' },
+  { cat:'Relations', cmd:'\\approx' },
+  { cat:'Relations', cmd:'\\sim' },
+  { cat:'Relations', cmd:'\\propto' },
+  { cat:'Relations', cmd:'\\cong' },
+
+  /* ==========================================================
+     CALCULUS
+  ========================================================== */
+
+  { cat:'Calculus', cmd:'\\frac{}{}' },
+  { cat:'Calculus', cmd:'\\sqrt{}' },
+  { cat:'Calculus', cmd:'\\sqrt[n]{}' },
+  { cat:'Calculus', cmd:'\\sum' },
+  { cat:'Calculus', cmd:'\\prod' },
+  { cat:'Calculus', cmd:'\\int' },
+  { cat:'Calculus', cmd:'\\oint' },
+  { cat:'Calculus', cmd:'\\iint' },
+  { cat:'Calculus', cmd:'\\iiint' },
+  { cat:'Calculus', cmd:'\\lim' },
+  { cat:'Calculus', cmd:'\\partial' },
+  { cat:'Calculus', cmd:'\\nabla' },
+  { cat:'Calculus', cmd:'\\nabla^2' },
+
+  /* ==========================================================
+     LINEAR ALGEBRA
+  ========================================================== */
+
+  { cat:'Linear Algebra', cmd:'\\mathbf{x}' },
+  { cat:'Linear Algebra', cmd:'\\mathbf{A}' },
+  { cat:'Linear Algebra', cmd:'\\boldsymbol{\\theta}' },
+  { cat:'Linear Algebra', cmd:'\\cdot' },
+  { cat:'Linear Algebra', cmd:'\\times' },
+  { cat:'Linear Algebra', cmd:'\\otimes' },
+  { cat:'Linear Algebra', cmd:'\\oplus' },
+  { cat:'Linear Algebra', cmd:'\\det' },
+  { cat:'Linear Algebra', cmd:'\\operatorname{rank}' },
+  { cat:'Linear Algebra', cmd:'\\operatorname{trace}' },
+
+  /* ==========================================================
+     MATRICES
+  ========================================================== */
+
+  { cat:'Matrices', cmd:'\\begin{matrix}' },
+  { cat:'Matrices', cmd:'\\begin{pmatrix}' },
+  { cat:'Matrices', cmd:'\\begin{bmatrix}' },
+  { cat:'Matrices', cmd:'\\begin{Bmatrix}' },
+  { cat:'Matrices', cmd:'\\begin{vmatrix}' },
+  { cat:'Matrices', cmd:'\\begin{Vmatrix}' },
+
+  /* ==========================================================
+     PROBABILITY & STATISTICS
+  ========================================================== */
+
+  { cat:'Probability', cmd:'\\mathbb{P}' },
+  { cat:'Probability', cmd:'\\mathbb{E}' },
+  { cat:'Probability', cmd:'\\operatorname{Var}' },
+  { cat:'Probability', cmd:'\\operatorname{Cov}' },
+  { cat:'Probability', cmd:'\\Pr' },
+  { cat:'Probability', cmd:'\\mathcal{N}(\\mu,\\sigma^2)' },
+
+  /* ==========================================================
+     OPTIMIZATION
+  ========================================================== */
+
+  { cat:'Optimization', cmd:'\\min' },
+  { cat:'Optimization', cmd:'\\max' },
+  { cat:'Optimization', cmd:'\\arg\\min' },
+  { cat:'Optimization', cmd:'\\arg\\max' },
+  { cat:'Optimization', cmd:'\\operatorname*{argmin}' },
+  { cat:'Optimization', cmd:'\\operatorname*{argmax}' },
+
+  /* ==========================================================
+     PDE / PINNS
+  ========================================================== */
+
+  { cat:'PDE', cmd:'\\partial_t u' },
+  { cat:'PDE', cmd:'\\partial_x u' },
+  { cat:'PDE', cmd:'\\partial_{xx}u' },
+  { cat:'PDE', cmd:'\\Delta u' },
+  { cat:'PDE', cmd:'\\nabla\\cdot' },
+  { cat:'PDE', cmd:'\\nabla\\times' },
+
+  { cat:'PINNs', cmd:'\\mathcal{L}_{data}' },
+  { cat:'PINNs', cmd:'\\mathcal{L}_{PDE}' },
+  { cat:'PINNs', cmd:'\\mathcal{L}_{BC}' },
+  { cat:'PINNs', cmd:'u_{\\theta}(x,t)' },
+  { cat:'PINNs', cmd:'\\nabla_{\\theta}' },
+
+  /* ==========================================================
+     AMSMATH
+  ========================================================== */
+
+  { cat:'AMSMath', cmd:'\\begin{align}' },
+  { cat:'AMSMath', cmd:'\\begin{align*}' },
+  { cat:'AMSMath', cmd:'\\begin{gather}' },
+  { cat:'AMSMath', cmd:'\\begin{multline}' },
+  { cat:'AMSMath', cmd:'\\begin{split}' },
+  { cat:'AMSMath', cmd:'\\boxed{}' },
+  { cat:'AMSMath', cmd:'\\tag{}' },
+  { cat:'AMSMath', cmd:'\\numberwithin{equation}{section}' },
+
+  /* ==========================================================
+     THEOREMS
+  ========================================================== */
+
+  { cat:'Theorems', cmd:'\\newtheorem{}{}' },
+  { cat:'Theorems', cmd:'\\begin{theorem}' },
+  { cat:'Theorems', cmd:'\\begin{lemma}' },
+  { cat:'Theorems', cmd:'\\begin{proposition}' },
+  { cat:'Theorems', cmd:'\\begin{corollary}' },
+  { cat:'Theorems', cmd:'\\begin{proof}' },
+  { cat:'Theorems', cmd:'\\qedhere' },
+
+  /* ==========================================================
+     GREEK LETTERS
+  ========================================================== */
+
+  { cat:'Greek', cmd:'\\alpha' },
+  { cat:'Greek', cmd:'\\beta' },
+  { cat:'Greek', cmd:'\\gamma' },
+  { cat:'Greek', cmd:'\\delta' },
+  { cat:'Greek', cmd:'\\epsilon' },
+  { cat:'Greek', cmd:'\\varepsilon' },
+  { cat:'Greek', cmd:'\\theta' },
+  { cat:'Greek', cmd:'\\vartheta' },
+  { cat:'Greek', cmd:'\\lambda' },
+  { cat:'Greek', cmd:'\\mu' },
+  { cat:'Greek', cmd:'\\pi' },
+  { cat:'Greek', cmd:'\\rho' },
+  { cat:'Greek', cmd:'\\sigma' },
+  { cat:'Greek', cmd:'\\tau' },
+  { cat:'Greek', cmd:'\\phi' },
+  { cat:'Greek', cmd:'\\varphi' },
+  { cat:'Greek', cmd:'\\omega' },
+  { cat:'Greek', cmd:'\\Gamma' },
+  { cat:'Greek', cmd:'\\Delta' },
+  { cat:'Greek', cmd:'\\Theta' },
+  { cat:'Greek', cmd:'\\Lambda' },
+  { cat:'Greek', cmd:'\\Pi' },
+  { cat:'Greek', cmd:'\\Sigma' },
+  { cat:'Greek', cmd:'\\Phi' },
+  { cat:'Greek', cmd:'\\Omega' },
+
+  /* ==========================================================
+     BIBTEX
+  ========================================================== */
+
+  { cat:'BibTeX', cmd:'\\bibliographystyle{IEEEtran}' },
+  { cat:'BibTeX', cmd:'\\bibliography{}' },
+
+  /* ==========================================================
+     IEEE COMMON PACKAGES
+  ========================================================== */
+
+  { cat:'IEEE', cmd:'\\usepackage{amsmath}' },
+  { cat:'IEEE', cmd:'\\usepackage{amssymb}' },
+  { cat:'IEEE', cmd:'\\usepackage{amsfonts}' },
+  { cat:'IEEE', cmd:'\\usepackage{amsthm}' },
+  { cat:'IEEE', cmd:'\\usepackage{mathtools}' },
+  { cat:'IEEE', cmd:'\\usepackage{bm}' },
+  { cat:'IEEE', cmd:'\\usepackage{graphicx}' },
+  { cat:'IEEE', cmd:'\\usepackage{subcaption}' },
+  { cat:'IEEE', cmd:'\\usepackage{booktabs}' },
+  { cat:'IEEE', cmd:'\\usepackage{multirow}' },
+  { cat:'IEEE', cmd:'\\usepackage{algorithm}' },
+  { cat:'IEEE', cmd:'\\usepackage{algpseudocode}' },
+  { cat:'IEEE', cmd:'\\usepackage{siunitx}' },
+
+  ];
+
+
+  function renderCheatsheet(query) {
+    cheatsheetList.innerHTML = '';
+    const lowerQuery = query.toLowerCase();
+    let currentCategory = '';
+
+    latexCommands
+      .filter(item => {
+        if (!query) return true;
+        return item.cmd.toLowerCase().includes(lowerQuery) ||
+               item.desc.toLowerCase().includes(lowerQuery) ||
+               item.cat.toLowerCase().includes(lowerQuery);
+      })
+      .forEach(item => {
+        if (item.cat !== currentCategory) {
+          currentCategory = item.cat;
+          const catHeader = document.createElement('div');
+          catHeader.className = 'cheatsheet-category';
+          catHeader.textContent = currentCategory;
+          cheatsheetList.appendChild(catHeader);
+        }
+
+        const div = document.createElement('div');
+        div.className = 'cheatsheet-item';
+        div.innerHTML = `<span class="cmd">${item.cmd}</span><span class="desc">${item.desc}</span>`;
+        div.addEventListener('click', () => {
+          const code = item.cmd.replace(/\n\s*/g, '\n'); // keep formatting
+          const cursor = editor.getCursor();
+          editor.replaceRange(code, cursor);
+          closeCheatsheet();
+          editor.focus();
+        });
+        cheatsheetList.appendChild(div);
+      });
+  }
+
+  function openCheatsheet() {
+    cheatsheetModal.classList.add('show');
+    cheatsheetSearch.value = '';
+    cheatsheetSearch.focus();
+    renderCheatsheet('');
+  }
+
+  function closeCheatsheet() {
+    cheatsheetModal.classList.remove('show');
+  }
+
+  cheatsheetBtn.addEventListener('click', openCheatsheet);
+  cheatsheetClose.addEventListener('click', closeCheatsheet);
+  cheatsheetSearch.addEventListener('input', () => renderCheatsheet(cheatsheetSearch.value));
+
+  window.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && cheatsheetModal.classList.contains('show')) {
+      closeCheatsheet();
+    }
+  });
+
+  cheatsheetModal.addEventListener('click', (e) => {
+    if (e.target === cheatsheetModal) closeCheatsheet();
+  });
+
+  // ===================== COMPILATION =====================
   async function compile() {
     const source = editor.getValue();
     if (!source.trim() || !currentProjectId) return;

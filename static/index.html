@@ -9,7 +9,7 @@
   <link rel="stylesheet" href="/static/style.css">
 </head>
 <body>
-  <!-- Floating search bar (outside editor pane) -->
+  <!-- Floating search bar -->
   <div id="search-bar">
     <input type="text" id="search-input" placeholder="Find in editor...">
     <button id="search-prev-btn" title="Previous match">▲</button>
@@ -24,6 +24,7 @@
     <button id="download-btn" disabled>Download PDF</button>
     <button id="new-project-btn">New Project</button>
     <button id="search-btn">🔍 Search</button>
+    <button id="cheatsheet-btn">📖 Cheat Sheet</button>
     <button id="toggle-files-btn">Files ▸</button>
   </div>
   <div id="main">
@@ -54,7 +55,18 @@
   </div>
   <div id="log"></div>
 
-  <!-- Only one CodeMirror and the searchcursor addon -->
+  <!-- Cheat Sheet Modal -->
+  <div id="cheatsheet-modal" class="modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3>LaTeX Cheat Sheet</h3>
+        <button id="cheatsheet-close" class="close-btn">✕</button>
+      </div>
+      <input type="text" id="cheatsheet-search" placeholder="Search commands...">
+      <div id="cheatsheet-list"></div>
+    </div>
+  </div>
+
   <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/stex/stex.min.js"></script>
   <script src="/static/script.js"></script>
